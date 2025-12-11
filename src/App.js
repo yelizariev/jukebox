@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react'
 import { Canvas, extend, useFrame } from '@react-three/fiber'
 import { Image, ScrollControls, useScroll, Billboard, Text } from '@react-three/drei'
 import { suspend } from 'suspend-react'
