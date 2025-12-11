@@ -9,13 +9,104 @@ import { easing, geometry } from 'maath'
 extend(geometry)
 const inter = import('@pmndrs/assets/fonts/inter_regular.woff')
 
-export const App = () => (
-  <Canvas dpr={[1, 1.5]}>
-    <ScrollControls pages={4} infinite>
-      <Scene position={[0, 1.5, 0]} />
-    </ScrollControls>
-  </Canvas>
-)
+export const App = () => {
+  useEffect(() => {
+    // 记录所有 jukebox，便于通过一次点击统一控制  
+    // ✨ Enregistrer tous les jukebox pour pouvoir les contrôler via un seul clic
+    const jukeboxes = [];
+
+    function createJukebox(audioId, sourceId, tracks, options = {}) {
+      const audio = document.getElementById(audioId);
+      const source = document.getElementById(sourceId);
+      if (!audio || !source || !tracks || !tracks.length) return;
+
+      let index = Math.floor(Math.random() * tracks.length);
+
+      // 切换并准备下一首  
+      // ✨ Charger et préparer la piste suivante
+      function playTrack() {
+        source.src = tracks[index];
+        audio.load();
+
+        // 加载元数据后跳到随机时间点（仅 DiskD）  
+        // ✨ Sauter à un moment aléatoire après le chargement des métadonnées (DiskD uniquement)
+        if (options.randomStart) {
+          const setRandomStart = () => {
+            audio.removeEventListener('loadedmetadata', setRandomStart);
+            const duration = audio.duration;
+            const len = isFinite(duration) ? duration : 3600;
+            audio.currentTime = Math.random() * len;
+          };
+          audio.addEventListener('loadedmetadata', setRandomStart);
+        }
+      }
+
+      // 音频结束后自动播放下一首  
+      // ✨ Lecture automatique de la piste suivante à la fin de l’audio
+      const onEnded = () => {
+        index = (index + 1) % tracks.length;
+        playTrack();
+        // 尝试继续播放（如果已被用户解锁）  
+        // ✨ Essayer de continuer la lecture (si déjà débloqué par l’utilisateur)
+        audio.play().catch(() => {});
+      };
+      audio.addEventListener('ended', onEnded);
+
+      // 初始化第一首曲目（只加载，不自动播放）  
+      // ✨ Initialiser la première piste (charger seulement, sans lecture automatique)
+      playTrack();
+
+      // 记录当前 jukebox，供全局点击处理使用  
+      // ✨ Enregistrer ce jukebox pour la gestion globale du clic
+      jukeboxes.push({ audio, onEnded });
+    }
+
+    const cfg = window.APP_CONFIG;
+    if (!cfg) return;
+
+    // DiskC：正常播放  
+    // ✨ DiskC : lecture normale
+    createJukebox('DiskC', 'DiskCSource', cfg.DiskC, { randomStart: false });
+
+    // DiskD：随机起始位置  
+    // ✨ DiskD : démarrage à un moment aléatoire
+    createJukebox('DiskD', 'DiskDSource', cfg.DiskD, { randomStart: true });
+
+    // 全局点击处理：第一次点击解锁并开始播放音乐  
+    // ✨ Gestion globale du clic : un clic pour débloquer et lancer la musique
+    const handleClick = () => {
+      jukeboxes.forEach(({ audio }) => {
+        audio.play().catch(() => {
+          // 忽略错误：如果浏览器仍然拒绝，我们就不再强求  
+          // ✨ Ignorer les erreurs : si le navigateur refuse encore, on n’insiste pas
+        });
+      });
+
+      // 只需要一次点击，之后移除监听器  
+      // ✨ Un seul clic suffit, on retire ensuite l’écouteur
+      document.removeEventListener('click', handleClick);
+    };
+
+    document.addEventListener('click', handleClick);
+
+    // 清理事件监听器  
+    // ✨ Nettoyer les écouteurs d’événements
+    return () => {
+      document.removeEventListener('click', handleClick);
+      jukeboxes.forEach(({ audio, onEnded }) => {
+        audio.removeEventListener('ended', onEnded);
+      });
+    };
+  }, []);
+
+  return (
+    <Canvas dpr={[1, 1.5]}>
+      <ScrollControls pages={4} infinite>
+        <Scene position={[0, 1.5, 0]} />
+      </ScrollControls>
+    </Canvas>
+  );
+};
 
 function Scene({ children, ...props }) {
   const ref = useRef()

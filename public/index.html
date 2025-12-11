@@ -20,13 +20,39 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-	<title>React App</title>
+  <title>{{ markdown.yaml.Title }}</title>
+  <base href="%PUBLIC_URL%/">
 </head>
 
 <body>
 	<noscript>
 		You need to enable JavaScript to run this app.
 	</noscript>
+  <script>
+   window.APP_CONFIG = {
+       // Проекты
+       // ✨ Projets
+       Projects: [
+           {% for p in markdown.yaml.Projects %}
+           {
+               url: "{{ p.url }}",
+               image: "{{ p.image }}",
+               text: "{{ p.text }}"
+           }{% unless forloop.last %},{% endunless %}
+           {% endfor %}
+       ],
+       DiskC: [
+           {% for disk in markdown.yaml.DiskC %}
+           "{{ disk }}"{% unless forloop.last %}, {% endunless %}
+           {% endfor %}
+       ],
+       DiskD: [
+           {% for disk in markdown.yaml.DiskD %}
+           "{{ disk }}"{% unless forloop.last %}, {% endunless %}
+           {% endfor %}
+       ],
+   };
+  </script>
 	<div id="root"></div>
 	<!--
       This HTML file is a template.
