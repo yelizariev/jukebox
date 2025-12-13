@@ -158,41 +158,86 @@ function Scene({ children, ...props }) {
   )
 }
 
-function Cards({ category, data = [], from = 0, len = Math.PI * 2, radius = 5.25, onPointerOver, onPointerOut, ...props }) {
+function Cards({
+  category,
+  data = [],
+  from = 0,
+  len = Math.PI * 2,
+  radius = 5.25,
+  onPointerOver,
+  onPointerOut,
+  ...props
+}) {
+  // hovered = объект card или null
   const [hovered, hover] = useState(null)
 
-  // 用真实卡片数量来排布，不再用“amount = len * 22”
-  // ✨ Utiliser le nombre réel de cartes, au lieu de “amount = len * 22”
+  // 用真实卡片数量来排布
+  // ✨ Utiliser le nombre réel de cartes
   const amount = Math.max(1, data.length)
   const textPosition = from + len / 2
 
   return (
     <group {...props}>
-      <Billboard position={[Math.sin(textPosition) * radius * 1.4, 0.5, Math.cos(textPosition) * radius * 1.4]}>
-        <Text font={suspend(inter).default} fontSize={0.25} anchorX="center" color="black">
+      {/* Название сектора */}
+      <Billboard
+        position={[
+          Math.sin(textPosition) * radius * 1.4,
+          0.5,
+          Math.cos(textPosition) * radius * 1.4
+        ]}
+      >
+        <Text
+          font={suspend(inter).default}
+          fontSize={0.25}
+          anchorX="center"
+          color="black"
+        >
           {category}
         </Text>
       </Billboard>
 
+      {/* Карточки */}
       {data.map((card, i) => {
         const angle = from + (i / amount) * len
+        const isHovered = hovered === card
+
         return (
           <Card
             key={`${category}-${i}-${angle}`}
-            onPointerOver={(e) => (e.stopPropagation(), hover(i), onPointerOver?.(i))}
-            onPointerOut={() => (hover(null), onPointerOut?.(null))}
-            position={[Math.sin(angle) * radius, 0, Math.cos(angle) * radius]}
+            position={[
+              Math.sin(angle) * radius,
+              0,
+              Math.cos(angle) * radius
+            ]}
             rotation={[0, Math.PI / 2 + angle, 0]}
+
+            // hover → передаём саму карточку
+            onPointerOver={(e) => {
+              e.stopPropagation()
+              hover(card)
+              onPointerOver?.(card)
+            }}
+
+            onPointerOut={() => {
+              hover(null)
+              onPointerOut?.(null)
+            }}
+
             active={hovered !== null}
-            hovered={hovered === i}
+            hovered={isHovered}
+
+            // данные карточки
             url={card.image}
             href={card.url}
+            title={card.title}
           />
         )
       })}
     </group>
   )
 }
+
+
 
 function Card({ url, href, active, hovered, ...props }) {
   const ref = useRef()
@@ -221,18 +266,59 @@ function Card({ url, href, active, hovered, ...props }) {
 
 function ActiveCard({ hovered, ...props }) {
   const ref = useRef()
-  const name = useMemo(() => generate({ exactly: 2 }).join(' '), [hovered])
-  useLayoutEffect(() => void (ref.current.material.zoom = 0.8), [hovered])
+
+  // hovered теперь — объект card
+  const title = hovered?.title || ''
+  const image = hovered?.image || null
+  const href = hovered?.url || null
+
+  useLayoutEffect(() => {
+    if (ref.current) {
+      ref.current.material.zoom = 0.8
+    }
+  }, [hovered])
+
   useFrame((state, delta) => {
+    if (!ref.current) return
     easing.damp(ref.current.material, 'zoom', 1, 0.5, delta)
-    easing.damp(ref.current.material, 'opacity', hovered !== null, 0.3, delta)
+    easing.damp(ref.current.material, 'opacity', hovered ? 1 : 0, 0.3, delta)
   })
+
+  const handleClick = (e) => {
+    e.stopPropagation()
+    if (!href) return
+    window.dispatchEvent(
+      new CustomEvent('card:click', { detail: { href } })
+    )
+  }
+
   return (
     <Billboard {...props}>
-      <Text font={suspend(inter).default} fontSize={0.5} position={[2.15, 3.85, 0]} anchorX="left" color="black">
-        {hovered !== null && `${name}\n${hovered}`}
-      </Text>
-      <Image ref={ref} transparent radius={0.3} position={[0, 1.5, 0]} scale={[3.5, 1.618 * 3.5, 0.2, 1]} url={`/img${Math.floor(hovered % 10) + 1}.jpg`} />
+      {hovered && (
+        <>
+          <Text
+            font={suspend(inter).default}
+            fontSize={0.5}
+            position={[2.15, 3.85, 0]}
+            anchorX="left"
+            color="black"
+          >
+            {title}
+          </Text>
+
+          {image && (
+            <Image
+              ref={ref}
+              transparent
+              radius={0.3}
+              position={[0, 1.5, 0]}
+              scale={[3.5, 1.618 * 3.5, 0.2]}
+              url={image}
+              onClick={handleClick}
+            />
+          )}
+        </>
+      )}
     </Billboard>
   )
 }
