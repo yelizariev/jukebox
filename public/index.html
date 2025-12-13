@@ -30,8 +30,7 @@
 	</noscript>
   <script>
    window.APP_CONFIG = {
-       // Проекты (секции → карточки)
-       // ✨ Projets (sections → cartes)
+       Next: "{{ markdown.yaml.Next }}",
        Projects: [
            {% for sector in markdown.yaml.Projects %}
            {
