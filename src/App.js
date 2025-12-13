@@ -108,31 +108,64 @@ export const App = () => {
   );
 };
 
+const DEG2RAD = Math.PI / 180;
+
 function Scene({ children, ...props }) {
   const ref = useRef()
   const scroll = useScroll()
   const [hovered, hover] = useState(null)
+
+  // 从全局配置读取项目分区
+  // ✨ Lire les secteurs de projets depuis la config globale
+  const projects = (window.APP_CONFIG?.Projects || []).filter((p) => p && p.cards && p.cards.length)
+
   useFrame((state, delta) => {
     ref.current.rotation.y = -scroll.offset * (Math.PI * 2) // Rotate contents
     state.events.update() // Raycasts every frame rather than on pointer-move
     easing.damp3(state.camera.position, [-state.pointer.x * 2, state.pointer.y * 2 + 4.5, 9], 0.3, delta)
     state.camera.lookAt(0, 0, 0)
   })
+
+  // 计算每个分区的起始角度
+  // ✨ Calculer l’angle de départ de chaque secteur
+  let from = 0
+
   return (
     <group ref={ref} {...props}>
-      <Cards category="spring" from={0} len={Math.PI / 4} onPointerOver={hover} onPointerOut={hover} />
-      <Cards category="summer" from={Math.PI / 4} len={Math.PI / 2} position={[0, 0.4, 0]} onPointerOver={hover} onPointerOut={hover} />
-      <Cards category="autumn" from={Math.PI / 4 + Math.PI / 2} len={Math.PI / 2} onPointerOver={hover} onPointerOut={hover} />
-      <Cards category="winter" from={Math.PI * 1.25} len={Math.PI * 2 - Math.PI * 1.25} position={[0, -0.4, 0]} onPointerOver={hover} onPointerOut={hover} />
+      {projects.map((sector, idx) => {
+        // 每个 sector.angle 是度数，转换为弧度作为 len
+        // ✨ sector.angle est en degrés, convertir en radians pour len
+        const len = (Number(sector.angle) || 0) * DEG2RAD
+        const localFrom = from
+        from += len
+
+        return (
+          <Cards
+            key={`${sector.title || 'sector'}-${idx}`}
+            category={sector.title}
+            data={sector.cards}
+            from={localFrom}
+            len={len}
+            onPointerOver={hover}
+            onPointerOut={hover}
+          />
+        )
+      })}
+
       <ActiveCard hovered={hovered} />
+      {children}
     </group>
   )
 }
 
-function Cards({ category, data, from = 0, len = Math.PI * 2, radius = 5.25, onPointerOver, onPointerOut, ...props }) {
+function Cards({ category, data = [], from = 0, len = Math.PI * 2, radius = 5.25, onPointerOver, onPointerOut, ...props }) {
   const [hovered, hover] = useState(null)
-  const amount = Math.round(len * 22)
-  const textPosition = from + (amount / 2 / amount) * len
+
+  // 用真实卡片数量来排布，不再用“amount = len * 22”
+  // ✨ Utiliser le nombre réel de cartes, au lieu de “amount = len * 22”
+  const amount = Math.max(1, data.length)
+  const textPosition = from + len / 2
+
   return (
     <group {...props}>
       <Billboard position={[Math.sin(textPosition) * radius * 1.4, 0.5, Math.cos(textPosition) * radius * 1.4]}>
@@ -140,18 +173,20 @@ function Cards({ category, data, from = 0, len = Math.PI * 2, radius = 5.25, onP
           {category}
         </Text>
       </Billboard>
-      {Array.from({ length: amount - 3 /* minus 3 images at the end, creates a gap */ }, (_, i) => {
+
+      {data.map((card, i) => {
         const angle = from + (i / amount) * len
         return (
           <Card
-            key={angle}
-            onPointerOver={(e) => (e.stopPropagation(), hover(i), onPointerOver(i))}
-            onPointerOut={() => (hover(null), onPointerOut(null))}
+            key={`${category}-${i}-${angle}`}
+            onPointerOver={(e) => (e.stopPropagation(), hover(i), onPointerOver?.(i))}
+            onPointerOut={() => (hover(null), onPointerOut?.(null))}
             position={[Math.sin(angle) * radius, 0, Math.cos(angle) * radius]}
             rotation={[0, Math.PI / 2 + angle, 0]}
             active={hovered !== null}
             hovered={hovered === i}
-            url={`/img${Math.floor(i % 10) + 1}.jpg`}
+            url={card.image}
+            href={card.url}
           />
         )
       })}
@@ -159,19 +194,30 @@ function Cards({ category, data, from = 0, len = Math.PI * 2, radius = 5.25, onP
   )
 }
 
-function Card({ url, active, hovered, ...props }) {
+function Card({ url, href, active, hovered, ...props }) {
   const ref = useRef()
+
   useFrame((state, delta) => {
     const f = hovered ? 1.4 : active ? 1.25 : 1
     easing.damp3(ref.current.position, [0, hovered ? 0.25 : 0, 0], 0.1, delta)
     easing.damp3(ref.current.scale, [1.618 * f, 1 * f, 1], 0.15, delta)
   })
+
+  // 点击卡片：把 href 发出去（后续你再接管处理）
+  // ✨ Clic sur la carte : émettre le href (tu pourras le traiter plus tard)
+  const handleClick = (e) => {
+    e.stopPropagation()
+    window.dispatchEvent(new CustomEvent('card:click', { detail: { href } }))
+  }
+
   return (
-    <group {...props}>
+    <group {...props} onClick={handleClick}>
       <Image ref={ref} transparent radius={0.075} url={url} scale={[1.618, 1, 1]} side={THREE.DoubleSide} />
     </group>
   )
 }
+
+
 
 function ActiveCard({ hovered, ...props }) {
   const ref = useRef()
