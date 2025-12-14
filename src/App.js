@@ -229,7 +229,7 @@ function Cards({
             // данные карточки
             url={card.image}
             href={card.url}
-            title={card.title}
+            content={card.content}
           />
         )
       })}
@@ -265,12 +265,13 @@ function Card({ url, href, active, hovered, ...props }) {
 
 
 function ActiveCard({ hovered, ...props }) {
-  const ref = useRef()
+    const ref = useRef();
 
-  // hovered теперь — объект card
-  const title = hovered?.title || ''
-  const image = hovered?.image || null
-  const href = hovered?.url || null
+    // hovered теперь — объект card
+    const content = hovered?.content || '';
+    const image = hovered?.image || null;
+    const href = hovered?.url || null;
+    console.log("ActiveCard", content, href);
 
   useLayoutEffect(() => {
     if (ref.current) {
@@ -303,7 +304,7 @@ function ActiveCard({ hovered, ...props }) {
             anchorX="left"
             color="black"
           >
-            {title}
+            {content}
           </Text>
 
           {image && (
