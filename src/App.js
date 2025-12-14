@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react'
 import { Canvas, extend, useFrame } from '@react-three/fiber'
-import { Image, ScrollControls, useScroll, Billboard, Text } from '@react-three/drei'
+import { Html, Image, ScrollControls, useScroll, Billboard, Text } from '@react-three/drei'
 import { suspend } from 'suspend-react'
 import { generate } from 'random-words'
 import { easing, geometry } from 'maath'
@@ -271,7 +271,6 @@ function ActiveCard({ hovered, ...props }) {
     const content = hovered?.content || '';
     const image = hovered?.image || null;
     const href = hovered?.url || null;
-    console.log("ActiveCard", content, href);
 
   useLayoutEffect(() => {
     if (ref.current) {
@@ -297,15 +296,18 @@ function ActiveCard({ hovered, ...props }) {
     <Billboard {...props}>
       {hovered && (
         <>
-          <Text
-            font={suspend(inter).default}
-            fontSize={0.5}
-            position={[2.15, 3.85, 0]}
-            anchorX="left"
-            color="black"
-          >
-            {content}
-          </Text>
+           <Html
+              position={[2.15, 3.85, 0]}
+              transform
+              occlude
+              style={{
+                  width: '300px',
+                  color: 'black',
+                  fontSize: '16px',
+                  pointerEvents: 'auto',
+              }}
+              dangerouslySetInnerHTML={{ __html: content }}
+           />
 
           {image && (
             <Image
