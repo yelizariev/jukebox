@@ -139,6 +139,17 @@ function Scene({ children, ...props }) {
         const localFrom = from
         from += len
 
+          // 如果没有 cards → 返回空 sector（只占角度）
+          // ✨ S'il n'y a pas de cards → secteur vide (occupe l'angle)
+          if (!sector.cards || sector.cards.length === 0) {
+              return (
+                      <group
+                  key={`empty-sector-${idx}`}
+                  userData={{ from: localFrom, len }}
+                      />
+              )
+          }
+
         return (
           <Cards
             key={`${sector.title || 'sector'}-${idx}`}
