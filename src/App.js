@@ -307,18 +307,9 @@ function ActiveCard({ hovered, ...props }) {
     <Billboard {...props}>
       {hovered && (
         <>
-           <Html
-              position={[2.15, 3.85, 0]}
-              transform
-              occlude
-              style={{
-                  width: '300px',
-                  color: 'black',
-                  fontSize: '16px',
-                  pointerEvents: 'auto',
-              }}
-              dangerouslySetInnerHTML={{ __html: content }}
-           />
+          <Text font={suspend(inter).default} fontSize={0.5} position={[2.15, 3.85, 0]} anchorX="left" color="black">
+              {content}
+          </Text>
 
           {image && (
             <Image
